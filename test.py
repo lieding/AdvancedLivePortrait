@@ -12,14 +12,14 @@ from safetensors.torch import load_file
 from ultralytics import YOLO
 from PIL import Image, ImageSequence, ImageOps
 
-from .LivePortrait.utils.camera import get_rotation_matrix
-from .LivePortrait.config.inference_config import InferenceConfig
-from .LivePortrait.live_portrait_wrapper import LivePortraitWrapper
-from .LivePortrait.modules.spade_generator import SPADEDecoder
-from .LivePortrait.modules.warping_network import WarpingNetwork
-from .LivePortrait.modules.motion_extractor import MotionExtractor
-from .LivePortrait.modules.appearance_feature_extractor import AppearanceFeatureExtractor
-from .LivePortrait.modules.stitching_retargeting_network import StitchingRetargetingNetwork
+from LivePortrait.utils.camera import get_rotation_matrix
+from LivePortrait.config.inference_config import InferenceConfig
+from LivePortrait.live_portrait_wrapper import LivePortraitWrapper
+from LivePortrait.modules.spade_generator import SPADEDecoder
+from LivePortrait.modules.warping_network import WarpingNetwork
+from LivePortrait.modules.motion_extractor import MotionExtractor
+from LivePortrait.modules.appearance_feature_extractor import AppearanceFeatureExtractor
+from LivePortrait.modules.stitching_retargeting_network import StitchingRetargetingNetwork
 
 current_file_path = os.path.abspath(__file__)
 current_directory = os.path.dirname(current_file_path)
@@ -659,7 +659,7 @@ class ExpressionEditor:
 
 
 if __name__ == '__main__':
-    input_img = load_image_from_file('/content/input.jpg')
+    input_img = load_image_from_file('reference.jpg')
     editor = ExpressionEditor()
     editor.run(src_image=input_img)
         
