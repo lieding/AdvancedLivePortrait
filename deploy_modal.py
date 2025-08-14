@@ -1,0 +1,58 @@
+from io import BytesIO
+from pathlib import Path
+
+from modal import Image, App
+import modal
+
+app = App(
+    "advanced-liveportrait"
+)
+
+CACHE_PATH = "/modal_cache/liveportrait"
+
+image = (
+    Image.debian_slim(python_version="3.11")
+    .copy_local_dir(local_path="../model", remote_path=CACHE_PATH)
+    .pip_install(
+        "numpy>=1.26.4",
+        "opencv-python-headless",
+        "imageio-ffmpeg>=0.5.1",
+        "lmdb>=1.4.1",
+        "timm>=1.0.7",
+        "rich>=13.7.1",
+        "albumentations>=1.4.10",
+        "ultralytics",
+        "tyro==0.8.5",
+        "dill",
+        "opencv-python",
+        "requests",
+        "pyaml",
+        "torch",
+        "safetensors",
+        "tqdm"
+    )
+    #.run_function(load_model)
+)
+
+with image.imports():
+    import PIL
+    
+    from test import load_image, ExpressionEditor
+    from datetime import datetime
+    import base64
+
+@app.cls(
+    image=image, gpu="T4", scaledown_window=45, enable_memory_snapshot=True
+)
+class WebApp:
+    @modal.enter(snap=True)
+    def startup(self):
+        print(f"Downloading models if necessary...")
+        self.editor = ExpressionEditor()
+
+    @modal.method()
+    def inference(
+        self, image_bytes: bytes, **kwargs
+    ) -> bytes:
+        image = load_image(PIL.Image.open(BytesIO(image_bytes)))
+        return self.editor.run(src_image=image, **kwargs)

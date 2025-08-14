@@ -1,6 +1,8 @@
 from collections import OrderedDict
+from io import BytesIO
 import os
 import copy
+from typing import Callable, Optional, Union
 
 import requests
 import cv2
@@ -41,7 +43,7 @@ def get_device():
     return cur_device
 
 def get_model_dir(m):
-    return f"../model_cache/{m}"
+    return f"/model_cache/{m}"
 
 def rgb_crop(rgb, region):
     return rgb[region[1]:region[3], region[0]:region[2]]
@@ -74,6 +76,47 @@ def load_image_from_file(file_path: str):
     image = torch.from_numpy(image)[None,]
     return image
   return None
+
+def load_image(
+    image: Union[str, Image.Image]
+) -> np.ndarray:
+    """
+    Loads `image` to a PIL Image.
+
+    Args:
+        image (`str` or `PIL.Image.Image`):
+            The image to convert to the PIL Image format.
+        convert_method (Callable[[PIL.Image.Image], PIL.Image.Image], *optional*):
+            A conversion method to apply to the image after loading it. When set to `None` the image will be converted
+            "RGB".
+
+    Returns:
+        `PIL.Image.Image`:
+            A PIL Image.
+    """
+    if isinstance(image, str):
+        if image.startswith("http://") or image.startswith("https://"):
+            image = Image.open(requests.get(image, stream=True).raw)
+        elif os.path.isfile(image):
+            image = Image.open(image)
+        else:
+            raise ValueError(
+                f"Incorrect path or URL. URLs must start with `http://` or `https://`, and {image} is not a valid path."
+            )
+    elif isinstance(image, Image.Image):
+        image = image
+    else:
+        raise ValueError(
+            "Incorrect format used for the image. Should be a URL linking to an image, a local path, or a PIL image."
+        )
+
+    image = ImageOps.exif_transpose(image)
+    
+    image = image.convert("RGB")
+    image = np.array(image).astype(np.float32) / 255.0
+    image = torch.from_numpy(image)[None,]
+
+    return image
 
 class PreparedSrcImg:
     def __init__(self, src_rgb, crop_trans_m, x_s_info, f_s_user, x_s_user, mask_ori):
@@ -508,6 +551,7 @@ class ExpressionEditor:
         self.sample_image = None
         self.src_image = None
         self.crop_factor = None
+        self.pipeline = g_engine.get_pipeline()
 
     @classmethod
     def INPUT_TYPES(s):
@@ -579,10 +623,12 @@ class ExpressionEditor:
         sample_image=None,
         motion_link=None,
         add_exp=None
-    ):
+    ) -> bytes:
         rotate_yaw = -rotate_yaw
 
         new_editor_link = None
+        pipeline = self.pipeline
+
         if src_image != None:
             if id(src_image) != id(self.src_image) or self.crop_factor != crop_factor:
                 self.crop_factor = crop_factor
@@ -592,8 +638,6 @@ class ExpressionEditor:
             new_editor_link.append(self.psi)
         else:
             return (None,None)
-
-        pipeline = g_engine.get_pipeline()
 
         psi = self.psi
         s_info = psi.x_s_info
@@ -646,8 +690,8 @@ class ExpressionEditor:
 
         out_img = pil2tensor(out)
 
-        img = Image.fromarray(crop_out)
-        img.save('../output.jpg', compress_level=1)
+        #img = Image.fromarray(crop_out)
+        #img.save('../output.jpg', compress_level=1)
 
         # Convert to NumPy and scale to [0, 255]
         np_img = out_img.squeeze(0)
@@ -655,11 +699,17 @@ class ExpressionEditor:
 
         # Convert to PIL Image
         image = Image.fromarray(np_img)
-        image.save('../output-1.jpg')
+        #image.save('../output-1.jpg')
+
+        byte_stream = BytesIO()
+        image.save(byte_stream, format="PNG")
+        image_bytes = byte_stream.getvalue()
+
+        return image_bytes
 
 
-if __name__ == '__main__':
-    input_img = load_image_from_file('reference.jpg')
-    editor = ExpressionEditor()
-    editor.run(src_image=input_img)
+# if __name__ == '__main__':
+#     input_img = load_image_from_file('reference.jpg')
+#     editor = ExpressionEditor()
+#     editor.run(src_image=input_img)
         
