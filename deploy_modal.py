@@ -12,10 +12,12 @@ CACHE_PATH = "/modal_cache/liveportrait"
 
 image = (
     Image.debian_slim(python_version="3.11")
+    .apt_install("python3-opencv")
     .copy_local_dir(local_path="../model", remote_path=CACHE_PATH)
     .copy_local_dir(local_path="./", remote_path="/root")
     .workdir("/root")
     .pip_install(
+        "opencv-python",
         "numpy>=1.26.4",
         "opencv-python-headless",
         "imageio-ffmpeg>=0.5.1",
