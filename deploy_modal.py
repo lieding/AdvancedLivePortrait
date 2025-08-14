@@ -60,3 +60,22 @@ class WebApp:
     ) -> bytes:
         image = load_image(PIL.Image.open(BytesIO(image_bytes)))
         return self.editor.run(src_image=image, **kwargs)
+    
+@app.local_entrypoint()
+def main(
+    image_path=Path(__file__).parent / "reference.jpg",
+    output_path=Path("/tmp/stable-diffusion/output.png")
+):
+    print(f"🎨 reading input image from {image_path}")
+    input_image_bytes = Path(image_path).read_bytes()
+    print(f"🎨 editing image with prompt '{prompt}'")
+    output_image_bytes = WebApp().inference.remote(input_image_bytes)
+
+    # if isinstance(output_path, str):
+    #     output_path = Path(output_path)
+
+    # dir = output_path.parent
+    # dir.mkdir(exist_ok=True, parents=True)
+
+    # print(f"🎨 saving output image to {output_path}")
+    # output_path.write_bytes(output_image_bytes)
