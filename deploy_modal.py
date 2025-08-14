@@ -8,13 +8,13 @@ app = App(
     "advanced-liveportrait"
 )
 
-CACHE_PATH = "/modal_cache/liveportrait"
+CACHE_PATH = "/model_cache/liveportrait"
 
 image = (
     Image.debian_slim(python_version="3.11")
     .apt_install("python3-opencv")
-    .copy_local_dir(local_path="../model", remote_path=CACHE_PATH)
-    .copy_local_dir(local_path="./", remote_path="/root")
+    .add_local_dir(local_path="../model", remote_path=CACHE_PATH, copy=True)
+    .add_local_dir(local_path="./", remote_path="/root", copy=True)
     .workdir("/root")
     .pip_install(
         "opencv-python",
@@ -68,7 +68,6 @@ def main(
 ):
     print(f"🎨 reading input image from {image_path}")
     input_image_bytes = Path(image_path).read_bytes()
-    print(f"🎨 editing image with prompt '{prompt}'")
     output_image_bytes = WebApp().inference.remote(input_image_bytes)
 
     # if isinstance(output_path, str):
